@@ -89,7 +89,7 @@ def moveMessage(uid, folder, imapServer):
     status, _ = imapServer.uid('copy', uid, folder)
     if status == "OK":
         logging.info("Adding deleted flag to message")
-        imapServer('store', uid, '+FLAGS', '(\Deleted)')
+        imapServer.uid('store', uid, '+FLAGS', '(\Deleted)')
         imapServer.expunge()
     else:
         logging.warning("Unable to apply copy message %s", uid)
@@ -112,7 +112,7 @@ def replyWithOriginalEmail(emailObj, fromAddress, body):
     # (http://www.jwz.org/doc/threading.html)
     replyObj['References'] = emailObj['Message-ID']
     replyObj['In-Reply-To'] = emailObj['Message-ID']
-    replyObj['Subject'] = emailObj['Subject']
+    replyObj['Subject'] = 'Re: ' + emailObj['Subject']
     return replyObj
 
 
@@ -149,8 +149,10 @@ def main():
         except imaplib.IMAP4.error:
             logging.exception("There was an error logging into the IMAP"
                     "server")
-            imapServer.close()
-            imapServer.logout()
+            # Occasionally, makeIMAPServer will fail without returning a
+            # server object, so we can't always close or logout 
+            #imapServer.close()
+            #imapServer.logout()
             continue  # next server configuration
         logging.debug(imapServer.capabilities)
         if hasNewMail(imapServer):
@@ -169,6 +171,12 @@ def main():
                     logging.exception("Was unable to fetch email from"
                             "server")
                     continue  # next UID
+                if server.has_key('senders'):
+                    _, emailFromAddr = email.utils.parseaddr(emailObj['From'])
+                    if emailFromAddr not in server['senders']:
+                        continue  # next UID
+                    else:
+                        logging.info("%s is in our 'senders' list. Sending reply..." % emailFromAddr)
                 replyObj = replyWithOriginalEmail(emailObj,
                         server['smtp']['from'],
                         server['body'])

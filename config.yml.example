@@ -13,6 +13,15 @@
     username: user@domain.tld
     password: secret
     from: "First Last <user@domain.tld>"
+
+  # Optional - when specified, only send responses to the addresses
+  # listed here:
+
+  # senders: 
+  #  - sender1@domain.tld
+  #  - sender2@domain.tld
+  #  - sender3@domain.tld
+
   body:
     |
       Type your plaintext email here.
